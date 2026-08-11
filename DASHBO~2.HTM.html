@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Ventas — Interactivo</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#ffffff; --border:#e5e7eb; --text:#1f2937; --sub:#6b7280; --muted:#9ca3af;
+    --blue:#2a78d6; --orange:#eb6834; --teal:#1baf7a; --purple:#7c3aed; --green:#16a34a; --red:#dc2626; --amber:#d97706;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    padding:28px;
+  }
+  .wrap{max-width:1360px;margin:0 auto;}
+  .topbar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+  .topbar h1{font-size:20px;font-weight:600;margin:0;}
+  .topbar .meta{font-size:12.5px;color:var(--sub);}
+  .filterbar{display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .filterbar .flabel{font-size:12px;color:var(--sub);margin-right:4px;}
+  .yearbtn{border:1px solid var(--border);background:var(--card);color:var(--sub);font-size:12.5px;font-weight:600;
+    padding:6px 14px;border-radius:20px;cursor:pointer;transition:all .12s;}
+  .yearbtn:hover{border-color:var(--blue);color:var(--blue);}
+  .yearbtn.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+  .searchbox{margin-left:auto;position:relative;}
+  .searchbox input{border:1px solid var(--border);border-radius:8px;padding:7px 12px 7px 30px;font-size:12.8px;
+    width:220px;background:#fff;color:var(--text);}
+  .searchbox input:focus{outline:none;border-color:var(--blue);}
+  .searchbox .ic{position:absolute;left:9px;top:8px;font-size:13px;color:var(--muted);}
+  .section-label{font-size:12px;color:var(--sub);text-transform:uppercase;letter-spacing:.04em;margin:22px 0 10px;font-weight:600;}
+  .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+  .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;
+    transition:box-shadow .15s;}
+  .kpi-card .lbl{font-size:12.5px;color:var(--sub);margin-bottom:6px;}
+  .kpi-card .val{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .kpi-card .delta{font-size:12px;margin-top:4px;font-weight:600;}
+  .up{color:var(--green);} .down{color:var(--red);} .flat{color:var(--muted);}
+  .grid-main{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;margin-top:16px;}
+  .grid-side{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:16px;align-items:start;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .card-title{font-size:13.5px;font-weight:600;color:var(--text);}
+  .card-sub{font-size:11px;color:var(--muted);}
+  table{width:100%;border-collapse:collapse;font-size:12.8px;}
+  th{text-align:left;color:var(--sub);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.02em;
+     padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;}
+  th:hover{color:var(--blue);}
+  th .arrow{font-size:10px;margin-left:3px;opacity:.6;}
+  td{padding:9px 10px;border-bottom:1px solid #f1f2f4;}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  .barcell{position:relative;}
+  .barcell .fill{position:absolute;top:0;left:0;bottom:0;background:#d9f2e4;z-index:0;border-radius:4px;}
+  .barcell .txt{position:relative;z-index:1;}
+  .empty-row td{text-align:center;color:var(--muted);padding:20px;}
+  .perf-stack{display:flex;flex-direction:column;gap:12px;}
+  .perf-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+  .perf-card .lbl{font-size:12.5px;color:var(--sub);margin-bottom:6px;}
+  .perf-card .val{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .perf-card .delta{font-size:12px;margin-top:4px;font-weight:600;}
+  .block-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px;}
+  .block{border-radius:10px;padding:14px 16px;color:#fff;}
+  .block .lbl{font-size:12.5px;opacity:.92;margin-bottom:6px;}
+  .block .val{font-size:22px;font-weight:700;}
+  .block .delta{font-size:12px;margin-top:4px;font-weight:600;opacity:.95;}
+  .b-amber{background:var(--amber);} .b-teal{background:var(--teal);} .b-purple{background:var(--purple);} .b-green{background:var(--green);}
+  .legend{display:flex;flex-direction:column;gap:8px;margin-top:10px;font-size:12.5px;}
+  .legend .row{display:flex;align-items:center;gap:8px;cursor:default;}
+  .legend .sw{width:9px;height:9px;border-radius:2px;flex:0 0 auto;}
+  .legend .name{color:var(--sub);flex:1;}
+  .legend .pct{font-weight:600;}
+  .footer-note{font-size:11.5px;color:var(--muted);text-align:center;margin-top:22px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <h1>Dashboard de Ventas</h1>
+    <div class="meta">Soles (PEN) &nbsp;·&nbsp; Corte cobranza 2026-07-16 &nbsp;·&nbsp; Fuente: Dashboard Ventas-Draft (1).xlsx</div>
+  </div>
+
+  <div class="filterbar">
+    <span class="flabel">Año:</span>
+    <div id="yearButtons"></div>
+    <div class="searchbox"><span class="ic">&#8981;</span><input id="searchInput" type="text" placeholder="Buscar cliente..."></div>
+  </div>
+
+  <div class="section-label">Resumen <span id="periodLabel" style="text-transform:none;font-weight:400;"></span></div>
+  <div class="kpi-row" id="kpiRow"></div>
+
+  <div class="grid-main">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Facturación real vs. presupuesto (mensual)</div>
+        <div class="card-sub" id="comboSub"></div>
+      </div>
+      <div style="position:relative;width:100%;height:300px;">
+        <canvas id="cCombo" role="img" aria-label="Grafico combinado de facturacion mensual real en barras y presupuesto en linea">Barras: facturación mensual real. Línea: presupuesto mensual, cuando existe dato de presupuesto para ese mes.</canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title" style="font-style:italic;">Servicios</div></div>
+      <div style="position:relative;width:100%;height:200px;">
+        <canvas id="cDonut" role="img" aria-label="Dona de facturacion por tipo de servicio, filtrable por año">Distribución de la facturación por tipo de servicio en el período seleccionado.</canvas>
+      </div>
+      <div class="legend" id="legendDonut"></div>
+    </div>
+  </div>
+
+  <div class="grid-side">
+    <div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Clientes por facturación</div>
+          <div class="card-sub" id="tableSub"></div>
+        </div>
+        <table>
+          <thead><tr>
+            <th data-col="cliente">Cliente<span class="arrow" id="arrow-cliente"></span></th>
+            <th class="num" data-col="valor">Facturación<span class="arrow" id="arrow-valor"></span></th>
+            <th class="num" data-col="pct">% total<span class="arrow" id="arrow-pct"></span></th>
+          </tr></thead>
+          <tbody id="tblClientes"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="perf-stack" id="perfStack"></div>
+  </div>
+
+  <div class="section-label">Cobranza y concentración <span style="text-transform:none;font-weight:400;">(cartera actual, no cambia con el filtro de año)</span></div>
+  <div class="block-row">
+    <div class="block b-amber"><div class="lbl">Índice HHI clientes (histórico)</div><div class="val">851</div><div class="delta">concentración moderada</div></div>
+    <div class="block b-teal"><div class="lbl">Top 10 clientes (histórico)</div><div class="val">63.6%</div><div class="delta">de la facturación 2022-2026</div></div>
+    <div class="block b-purple"><div class="lbl">Cartera vencida</div><div class="val">100.0%</div><div class="delta">requiere gestión</div></div>
+    <div class="block b-green"><div class="lbl">Saldo crítico 91+ días</div><div class="val">S/ 11,554</div><div class="delta">28.3% de la cartera</div></div>
+  </div>
+
+  <div class="footer-note">Generado a partir del análisis de Dashboard Ventas-Draft (1).xlsx — usa los botones de año y el buscador para explorar los datos.</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const DATA = {"monthly": [{"mes": "2022-01", "facturacion": -18468.36, "presupuesto": null}, {"mes": "2022-02", "facturacion": 13005.43, "presupuesto": null}, {"mes": "2022-03", "facturacion": 16184.56, "presupuesto": null}, {"mes": "2022-04", "facturacion": 25780.58, "presupuesto": null}, {"mes": "2022-05", "facturacion": 22338.84, "presupuesto": null}, {"mes": "2022-06", "facturacion": 19829.82, "presupuesto": null}, {"mes": "2022-07", "facturacion": 32296.62, "presupuesto": null}, {"mes": "2022-08", "facturacion": 17061.33, "presupuesto": null}, {"mes": "2022-09", "facturacion": 18927.83, "presupuesto": null}, {"mes": "2022-10", "facturacion": 50973.59, "presupuesto": null}, {"mes": "2022-11", "facturacion": 34008.61, "presupuesto": null}, {"mes": "2022-12", "facturacion": 35211.82, "presupuesto": null}, {"mes": "2023-01", "facturacion": 35049.22, "presupuesto": null}, {"mes": "2023-02", "facturacion": 5109.15, "presupuesto": null}, {"mes": "2023-03", "facturacion": 40184.9, "presupuesto": null}, {"mes": "2023-04", "facturacion": 46905.49, "presupuesto": null}, {"mes": "2023-05", "facturacion": 27837.56, "presupuesto": null}, {"mes": "2023-06", "facturacion": 26757.81, "presupuesto": null}, {"mes": "2023-07", "facturacion": 25637.03, "presupuesto": null}, {"mes": "2023-08", "facturacion": 47792.61, "presupuesto": null}, {"mes": "2023-09", "facturacion": 30718.27, "presupuesto": null}, {"mes": "2023-10", "facturacion": 25715.05, "presupuesto": null}, {"mes": "2023-11", "facturacion": 25166.5, "presupuesto": null}, {"mes": "2023-12", "facturacion": 44524.34, "presupuesto": null}, {"mes": "2024-01", "facturacion": 25019.33, "presupuesto": 31185.1}, {"mes": "2024-02", "facturacion": 19956.5, "presupuesto": 37499.35}, {"mes": "2024-03", "facturacion": 19346.39, "presupuesto": 50846.65}, {"mes": "2024-04", "facturacion": 26372.18, "presupuesto": 37556.99}, {"mes": "2024-05", "facturacion": 45257.19, "presupuesto": 40539.07}, {"mes": "2024-06", "facturacion": 35667.3, "presupuesto": 46285.28}, {"mes": "2024-07", "facturacion": 9882.38, "presupuesto": 51392.86}, {"mes": "2024-08", "facturacion": 96797.4, "presupuesto": 43451.71}, {"mes": "2024-09", "facturacion": 16892.85, "presupuesto": 51301.32}, {"mes": "2024-10", "facturacion": 31117.84, "presupuesto": 47356.71}, {"mes": "2024-11", "facturacion": 10077.66, "presupuesto": 56234.08}, {"mes": "2024-12", "facturacion": 84840.52, "presupuesto": 51382.03}, {"mes": "2025-01", "facturacion": 23859.2, "presupuesto": 38000.0}, {"mes": "2025-02", "facturacion": 35417.52, "presupuesto": 38000.0}, {"mes": "2025-03", "facturacion": 30845.79, "presupuesto": 41000.0}, {"mes": "2025-04", "facturacion": 14953.55, "presupuesto": 41000.0}, {"mes": "2025-05", "facturacion": 36103.92, "presupuesto": 41000.0}, {"mes": "2025-06", "facturacion": 33521.89, "presupuesto": 41000.0}, {"mes": "2025-07", "facturacion": 84241.61, "presupuesto": 41000.0}, {"mes": "2025-08", "facturacion": 12220.4, "presupuesto": 41000.0}, {"mes": "2025-09", "facturacion": 25115.62, "presupuesto": 41000.0}, {"mes": "2025-10", "facturacion": 2842.26, "presupuesto": 41000.0}, {"mes": "2025-11", "facturacion": 913.28, "presupuesto": 41000.0}, {"mes": "2025-12", "facturacion": 9805.27, "presupuesto": 41000.0}, {"mes": "2026-01", "facturacion": 14951.11, "presupuesto": null}, {"mes": "2026-02", "facturacion": 57890.04, "presupuesto": null}, {"mes": "2026-03", "facturacion": 38097.62, "presupuesto": null}, {"mes": "2026-04", "facturacion": 6133.51, "presupuesto": null}, {"mes": "2026-05", "facturacion": 3105.52, "presupuesto": null}, {"mes": "2026-06", "facturacion": 21768.35, "presupuesto": null}, {"mes": "2026-07", "facturacion": 43660.0, "presupuesto": null}], "years": {"2022": {"total": 267150.68, "clientes_activos": 34, "clientes": [{"cliente": "Grupo Hidraulica S.A.C.", "valor": 55866.3, "pct": 20.91}, {"cliente": "Andean Lux Peru S.A.C.", "valor": 55211.4, "pct": 20.67}, {"cliente": "Negocios AB Centro S.A.C.", "valor": 45489.0, "pct": 17.03}, {"cliente": "Transportes Cruz del Sur S.A.C.", "valor": 39215.53, "pct": 14.68}, {"cliente": "International Diagnostic Imaging S.A.C.", "valor": 13193.54, "pct": 4.94}, {"cliente": "BRL Solutions S.A.C.", "valor": 11971.34, "pct": 4.48}, {"cliente": "Allgroup S.A.C. ", "valor": 8699.55, "pct": 3.26}, {"cliente": "Future Concept S.A.C.", "valor": 8684.56, "pct": 3.25}, {"cliente": "Casevip S.R.L.", "valor": 8249.97, "pct": 3.09}, {"cliente": "ICH Corp S.A.", "valor": 5986.49, "pct": 2.24}, {"cliente": "Contabaudit E.I.R.L. ", "valor": 5894.1, "pct": 2.21}, {"cliente": "Consorcio Allok y Asociados", "valor": 4495.8, "pct": 1.68}, {"cliente": "A C Inversiones Internacionales S.A.C.", "valor": 4248.0, "pct": 1.59}, {"cliente": "La Torre Servicios Inmobiliarios S.A.C.", "valor": 440.0, "pct": 0.16}, {"cliente": "Riqui S.A.C.", "valor": 300.0, "pct": 0.11}, {"cliente": "DSI Underground Peru S.A.C", "valor": 210.0, "pct": 0.08}, {"cliente": "386 Systems S.A.C. en liquidacion", "valor": 150.0, "pct": 0.06}, {"cliente": "Corporacion Rosse S.A.C.", "valor": 150.0, "pct": 0.06}, {"cliente": "Optima Energia S.A.C.", "valor": 130.02, "pct": 0.05}, {"cliente": "Quilca Librerias Digitales S.A.C.", "valor": 130.0, "pct": 0.05}, {"cliente": "Cooperativa De Ahorro Y Credito Abaco", "valor": 130.0, "pct": 0.05}, {"cliente": "L & S Asesores Legales S.A.C.", "valor": 125.0, "pct": 0.05}, {"cliente": "Edicomex S.A.C.", "valor": 125.0, "pct": 0.05}, {"cliente": "GHMR Lawconsult S.A.C.", "valor": 125.0, "pct": 0.05}, {"cliente": "Enfrio Systems S.A.C.", "valor": 125.0, "pct": 0.05}, {"cliente": "Emusa S.A.C.", "valor": 120.0, "pct": 0.04}, {"cliente": "Grupo Odisea S.A.C.", "valor": 120.0, "pct": 0.04}, {"cliente": "MAN PAN SERVICE S.A.C.", "valor": 65.0, "pct": 0.02}, {"cliente": "Solutek S.A.C.", "valor": 65.0, "pct": 0.02}, {"cliente": "Business Coach P&D Peru S.A.C. ", "valor": 60.0, "pct": 0.02}, {"cliente": "Estudio Juridico Ruiz, Vera & Flores, Gomez Lawyers Consultores S.A.C.", "valor": 60.0, "pct": 0.02}, {"cliente": "Powder & Bulk Soluciones Integrales S.A.", "valor": 60.0, "pct": 0.02}, {"cliente": "Rr Martinez Asociados S.A.C.", "valor": 60.0, "pct": 0.02}, {"cliente": "Generacion Women for Safety", "valor": -2804.92, "pct": -1.05}], "tipo_servicio": [{"tipo": "Recurrente", "valor": 217117.98, "pct": 81.27}, {"tipo": "Consultoria", "valor": 27200.83, "pct": 10.18}, {"tipo": "Financiamiento", "valor": 19181.84, "pct": 7.18}, {"tipo": "Otros", "valor": 3650.02, "pct": 1.37}], "facturas": 101, "var_yoy": null}, "2023": {"total": 381397.93, "clientes_activos": 14, "clientes": [{"cliente": "Grupo Hidraulica S.A.C.", "valor": 159041.58, "pct": 41.7}, {"cliente": "Valmer Systems S.A.C.", "valor": 60111.26, "pct": 15.76}, {"cliente": "Andean Lux Peru S.A.C.", "valor": 58389.1, "pct": 15.31}, {"cliente": "Rotulos de Madera Costa Rica", "valor": 35849.82, "pct": 9.4}, {"cliente": "Transportes Cruz del Sur S.A.C.", "valor": 18644.47, "pct": 4.89}, {"cliente": "ICH Corp S.A.", "valor": 15103.06, "pct": 3.96}, {"cliente": "Negocios AB Centro S.A.C.", "valor": 12744.0, "pct": 3.34}, {"cliente": "Industria y Servicios Ricos Pan S.A.C.", "valor": 11886.27, "pct": 3.12}, {"cliente": "Allgroup S.A.C.", "valor": 5546.0, "pct": 1.45}, {"cliente": "Corporacion Sahu S.A.C.", "valor": 2480.65, "pct": 0.65}, {"cliente": "Carmen Liliana Hernandez Tejada", "valor": 1495.89, "pct": 0.39}, {"cliente": "International Diagnostic Imaging S.A.C.", "valor": 1325.68, "pct": 0.35}, {"cliente": "Cooperativa De Ahorro Y Credito Abaco", "valor": 130.0, "pct": 0.03}, {"cliente": "Casevip S.R.L.", "valor": -1349.85, "pct": -0.35}], "tipo_servicio": [{"tipo": "Recurrente", "valor": 286942.72, "pct": 75.23}, {"tipo": "Consultoria", "valor": 73676.15, "pct": 19.32}, {"tipo": "Financiamiento", "valor": 20649.06, "pct": 5.41}, {"tipo": "Otros", "valor": 130.0, "pct": 0.03}], "facturas": 59, "var_yoy": 42.77}, "2024": {"total": 421227.55, "clientes_activos": 16, "clientes": [{"cliente": "Grupo Hidraulica S.A.C.", "valor": 159384.96, "pct": 37.84}, {"cliente": "Rotulos de Madera Costa Rica", "valor": 50219.7, "pct": 11.92}, {"cliente": "Inmobiliaria y Constructora Arquines S.A.C.", "valor": 36598.58, "pct": 8.69}, {"cliente": "Sociedad de Automotores Inka S.A.C.", "valor": 33715.85, "pct": 8.0}, {"cliente": "Inversiones Maje S.A.", "valor": 26735.41, "pct": 6.35}, {"cliente": "Cooperativa de Ahorro y Credito Latino Peru Limitada", "valor": 20000.0, "pct": 4.75}, {"cliente": "Kossodo Metrologia S.A.C.", "valor": 17668.14, "pct": 4.19}, {"cliente": "Kossodo S.A.C.", "valor": 17668.14, "pct": 4.19}, {"cliente": "Viva Negocio Inmobiliario S.A.C.", "valor": 16943.68, "pct": 4.02}, {"cliente": "V & J Ingenieria y Construccion S.A.", "valor": 15000.04, "pct": 3.56}, {"cliente": "International Diagnostic Imaging S.A.C.", "valor": 10000.78, "pct": 2.37}, {"cliente": "Innovaciones Diagnósticas Inteligentes S.A.C.", "valor": 10000.78, "pct": 2.37}, {"cliente": "Andean Lux Peru S.A.C.", "valor": 5516.5, "pct": 1.31}, {"cliente": "Prime Inmobiliaria y Constructora S.A.C.", "valor": 1475.0, "pct": 0.35}, {"cliente": "Ana Paula Yucra Vela", "valor": 300.0, "pct": 0.07}, {"cliente": "Skinscience S.A.C.", "valor": 0.0, "pct": 0.0}], "tipo_servicio": [{"tipo": "Recurrente", "valor": 277323.62, "pct": 65.84}, {"tipo": "Consultoria", "valor": 113869.97, "pct": 27.03}, {"tipo": "Financiamiento", "valor": 29733.96, "pct": 7.06}, {"tipo": "Otros", "valor": 300.0, "pct": 0.07}], "facturas": 75, "var_yoy": 10.44}, "2025": {"total": 309840.31, "clientes_activos": 26, "clientes": [{"cliente": "Kossodo Metrologia S.A.C.", "valor": 34940.98, "pct": 11.28}, {"cliente": "Kossodo S.A.C.", "valor": 34940.98, "pct": 11.28}, {"cliente": "Inmobiliaria los Alerces S.A.C.", "valor": 26250.58, "pct": 8.47}, {"cliente": "Grupo Odisea S.A.C.", "valor": 26032.27, "pct": 8.4}, {"cliente": "Inversiones Maje S.A.", "valor": 25097.47, "pct": 8.1}, {"cliente": "Asia Market S.A.C.", "valor": 22840.1, "pct": 7.37}, {"cliente": "Asia Grifos y Servicios Generales S.A.C.", "valor": 22840.1, "pct": 7.37}, {"cliente": "Viva Negocio Inmobiliario S.A.C.", "valor": 16699.95, "pct": 5.39}, {"cliente": "ICH Corp S.A.", "valor": 15045.0, "pct": 4.86}, {"cliente": "Grupo Hidraulica S.A.C.", "valor": 13197.12, "pct": 4.26}, {"cliente": "Tecnopress S.A.C.", "valor": 13098.0, "pct": 4.23}, {"cliente": "Sociedad de Automotores Inka S.A.C.", "valor": 10824.2, "pct": 3.49}, {"cliente": "Jesicafe S.A.C.", "valor": 10656.0, "pct": 3.44}, {"cliente": "BL Corredores de Seguros S.A.C.", "valor": 9037.15, "pct": 2.92}, {"cliente": "Empresa de Crédito Alternativa", "valor": 4366.0, "pct": 1.41}, {"cliente": "Inmobiliaria y Constructora Arquines S.A.C.", "valor": 4345.94, "pct": 1.4}, {"cliente": "Inversiones ALM S.A.C.", "valor": 2879.19, "pct": 0.93}, {"cliente": "Luis Alfredo Watanabe", "valor": 2879.19, "pct": 0.93}, {"cliente": "Rivadeneira Benavides Ximena Cristhina", "valor": 2879.19, "pct": 0.93}, {"cliente": "Javier Alonso Matta Bolivar", "valor": 2879.19, "pct": 0.93}, {"cliente": "Innovaciones Diagnosticas Inteligentes S.A.C.", "valor": 2183.0, "pct": 0.7}, {"cliente": "International Diagnostic Imaging S.A.C.", "valor": 2183.0, "pct": 0.7}, {"cliente": "Jose Antonio Bernaola Licetti", "valor": 1864.0, "pct": 0.6}, {"cliente": "Blue Market S.A.C.", "valor": 654.9, "pct": 0.21}, {"cliente": "Bob Steven Garcia Minaya", "valor": 650.0, "pct": 0.21}, {"cliente": "Inviu Perú Sociedad Agente de Bolsa S.A.C.", "valor": 576.83, "pct": 0.19}], "tipo_servicio": [{"tipo": "Consultoria", "valor": 204802.69, "pct": 66.1}, {"tipo": "Recurrente", "valor": 56883.08, "pct": 18.36}, {"tipo": "Financiamiento", "valor": 46316.47, "pct": 14.95}, {"tipo": "Otros", "valor": 1838.07, "pct": 0.59}], "facturas": 98, "var_yoy": -26.44}, "2026": {"total": 185606.15, "clientes_activos": 12, "clientes": [{"cliente": "Grupo Odisea S.A.C.", "valor": 32963.3, "pct": 17.76}, {"cliente": "Innovaciones Diagnosticas Inteligentes S.A.C.", "valor": 30562.0, "pct": 16.47}, {"cliente": "BL Corredores de Seguros S.A.C.", "valor": 18083.76, "pct": 9.74}, {"cliente": "Corporación Vega S.A.C.", "valor": 17700.0, "pct": 9.54}, {"cliente": "Grupo Vega Distribución S.A.C.", "valor": 17700.0, "pct": 9.54}, {"cliente": "Valmer Systems  S.A.C.", "valor": 15368.32, "pct": 8.28}, {"cliente": "Hermanos Punjabi S.A.", "valor": 14345.71, "pct": 7.73}, {"cliente": "TOC PERU S.A.C.", "valor": 13098.0, "pct": 7.06}, {"cliente": "RFM Tecnología y Transporte S.A.C", "valor": 11210.0, "pct": 6.04}, {"cliente": "Inversiones Maje S.A.", "valor": 10915.0, "pct": 5.88}, {"cliente": "Inviu Perú Sociedad Agente de Bolsa S.A.C.", "valor": 2126.06, "pct": 1.15}, {"cliente": "VSG Peru S.A.C.", "valor": 1534.0, "pct": 0.83}], "tipo_servicio": [{"tipo": "Consultoria", "valor": 183480.09, "pct": 98.85}, {"tipo": "Otros", "valor": 2126.06, "pct": 1.15}], "facturas": 49, "var_yoy": -40.1}, "Todos": {"total": 1565222.62, "clientes_activos": 75, "clientes": [{"cliente": "Grupo Hidraulica S.A.C.", "valor": 387489.96, "pct": 24.76}, {"cliente": "Andean Lux Peru S.A.C.", "valor": 119117.0, "pct": 7.61}, {"cliente": "Rotulos de Madera Costa Rica", "valor": 86069.52, "pct": 5.5}, {"cliente": "Inversiones Maje S.A.", "valor": 62747.88, "pct": 4.01}, {"cliente": "Valmer Systems S.A.C.", "valor": 60111.26, "pct": 3.84}, {"cliente": "Grupo Odisea S.A.C.", "valor": 59115.57, "pct": 3.78}, {"cliente": "Negocios AB Centro S.A.C.", "valor": 58233.0, "pct": 3.72}, {"cliente": "Transportes Cruz del Sur S.A.C.", "valor": 57860.0, "pct": 3.7}, {"cliente": "Kossodo Metrologia S.A.C.", "valor": 52609.12, "pct": 3.36}, {"cliente": "Kossodo S.A.C.", "valor": 52609.12, "pct": 3.36}, {"cliente": "Sociedad de Automotores Inka S.A.C.", "valor": 44540.05, "pct": 2.85}, {"cliente": "Inmobiliaria y Constructora Arquines S.A.C.", "valor": 40944.52, "pct": 2.62}, {"cliente": "ICH Corp S.A.", "valor": 36134.55, "pct": 2.31}, {"cliente": "Viva Negocio Inmobiliario S.A.C.", "valor": 33643.63, "pct": 2.15}, {"cliente": "Innovaciones Diagnosticas Inteligentes S.A.C.", "valor": 32745.0, "pct": 2.09}, {"cliente": "BL Corredores de Seguros S.A.C.", "valor": 27120.91, "pct": 1.73}, {"cliente": "International Diagnostic Imaging S.A.C.", "valor": 26703.0, "pct": 1.71}, {"cliente": "Inmobiliaria los Alerces S.A.C.", "valor": 26250.58, "pct": 1.68}, {"cliente": "Asia Market S.A.C.", "valor": 22840.1, "pct": 1.46}, {"cliente": "Asia Grifos y Servicios Generales S.A.C.", "valor": 22840.1, "pct": 1.46}, {"cliente": "Cooperativa de Ahorro y Credito Latino Peru Limitada", "valor": 20000.0, "pct": 1.28}, {"cliente": "Corporación Vega S.A.C.", "valor": 17700.0, "pct": 1.13}, {"cliente": "Grupo Vega Distribución S.A.C.", "valor": 17700.0, "pct": 1.13}, {"cliente": "Valmer Systems  S.A.C.", "valor": 15368.32, "pct": 0.98}, {"cliente": "V & J Ingenieria y Construccion S.A.", "valor": 15000.04, "pct": 0.96}, {"cliente": "Hermanos Punjabi S.A.", "valor": 14345.71, "pct": 0.92}, {"cliente": "Tecnopress S.A.C.", "valor": 13098.0, "pct": 0.84}, {"cliente": "TOC PERU S.A.C.", "valor": 13098.0, "pct": 0.84}, {"cliente": "BRL Solutions S.A.C.", "valor": 11971.34, "pct": 0.76}, {"cliente": "Industria y Servicios Ricos Pan S.A.C.", "valor": 11886.27, "pct": 0.76}, {"cliente": "RFM Tecnología y Transporte S.A.C", "valor": 11210.0, "pct": 0.72}, {"cliente": "Jesicafe S.A.C.", "valor": 10656.0, "pct": 0.68}, {"cliente": "Innovaciones Diagnósticas Inteligentes S.A.C.", "valor": 10000.78, "pct": 0.64}, {"cliente": "Allgroup S.A.C. ", "valor": 8699.55, "pct": 0.56}, {"cliente": "Future Concept S.A.C.", "valor": 8684.56, "pct": 0.55}, {"cliente": "Casevip S.R.L.", "valor": 6900.12, "pct": 0.44}, {"cliente": "Contabaudit E.I.R.L. ", "valor": 5894.1, "pct": 0.38}, {"cliente": "Allgroup S.A.C.", "valor": 5546.0, "pct": 0.35}, {"cliente": "Consorcio Allok y Asociados", "valor": 4495.8, "pct": 0.29}, {"cliente": "Empresa de Crédito Alternativa", "valor": 4366.0, "pct": 0.28}, {"cliente": "A C Inversiones Internacionales S.A.C.", "valor": 4248.0, "pct": 0.27}, {"cliente": "Inversiones ALM S.A.C.", "valor": 2879.19, "pct": 0.18}, {"cliente": "Luis Alfredo Watanabe", "valor": 2879.19, "pct": 0.18}, {"cliente": "Rivadeneira Benavides Ximena Cristhina", "valor": 2879.19, "pct": 0.18}, {"cliente": "Javier Alonso Matta Bolivar", "valor": 2879.19, "pct": 0.18}, {"cliente": "Inviu Perú Sociedad Agente de Bolsa S.A.C.", "valor": 2702.89, "pct": 0.17}, {"cliente": "Corporacion Sahu S.A.C.", "valor": 2480.65, "pct": 0.16}, {"cliente": "Jose Antonio Bernaola Licetti", "valor": 1864.0, "pct": 0.12}, {"cliente": "VSG Peru S.A.C.", "valor": 1534.0, "pct": 0.1}, {"cliente": "Carmen Liliana Hernandez Tejada", "valor": 1495.89, "pct": 0.1}, {"cliente": "Prime Inmobiliaria y Constructora S.A.C.", "valor": 1475.0, "pct": 0.09}, {"cliente": "Blue Market S.A.C.", "valor": 654.9, "pct": 0.04}, {"cliente": "Bob Steven Garcia Minaya", "valor": 650.0, "pct": 0.04}, {"cliente": "La Torre Servicios Inmobiliarios S.A.C.", "valor": 440.0, "pct": 0.03}, {"cliente": "Riqui S.A.C.", "valor": 300.0, "pct": 0.02}, {"cliente": "Ana Paula Yucra Vela", "valor": 300.0, "pct": 0.02}, {"cliente": "Cooperativa De Ahorro Y Credito Abaco", "valor": 260.0, "pct": 0.02}, {"cliente": "DSI Underground Peru S.A.C", "valor": 210.0, "pct": 0.01}, {"cliente": "386 Systems S.A.C. en liquidacion", "valor": 150.0, "pct": 0.01}, {"cliente": "Corporacion Rosse S.A.C.", "valor": 150.0, "pct": 0.01}, {"cliente": "Optima Energia S.A.C.", "valor": 130.02, "pct": 0.01}, {"cliente": "Quilca Librerias Digitales S.A.C.", "valor": 130.0, "pct": 0.01}, {"cliente": "L & S Asesores Legales S.A.C.", "valor": 125.0, "pct": 0.01}, {"cliente": "Edicomex S.A.C.", "valor": 125.0, "pct": 0.01}, {"cliente": "GHMR Lawconsult S.A.C.", "valor": 125.0, "pct": 0.01}, {"cliente": "Enfrio Systems S.A.C.", "valor": 125.0, "pct": 0.01}, {"cliente": "Emusa S.A.C.", "valor": 120.0, "pct": 0.01}, {"cliente": "MAN PAN SERVICE S.A.C.", "valor": 65.0, "pct": 0.0}, {"cliente": "Solutek S.A.C.", "valor": 65.0, "pct": 0.0}, {"cliente": "Business Coach P&D Peru S.A.C. ", "valor": 60.0, "pct": 0.0}, {"cliente": "Estudio Juridico Ruiz, Vera & Flores, Gomez Lawyers Consultores S.A.C.", "valor": 60.0, "pct": 0.0}, {"cliente": "Powder & Bulk Soluciones Integrales S.A.", "valor": 60.0, "pct": 0.0}, {"cliente": "Rr Martinez Asociados S.A.C.", "valor": 60.0, "pct": 0.0}, {"cliente": "Skinscience S.A.C.", "valor": 0.0, "pct": 0.0}, {"cliente": "Generacion Women for Safety", "valor": -2804.92, "pct": -0.18}], "tipo_servicio": [{"tipo": "Recurrente", "valor": 838267.4, "pct": 53.56}, {"tipo": "Consultoria", "valor": 603029.73, "pct": 38.53}, {"tipo": "Financiamiento", "valor": 115881.33, "pct": 7.4}, {"tipo": "Otros", "valor": 8044.15, "pct": 0.51}], "facturas": 382, "var_yoy": null}}};
+
+const YEARS = ['Todos','2022','2023','2024','2025','2026'];
+let state = { year: 'Todos', search: '', sortCol: 'valor', sortDir: 'desc' };
+
+Chart.defaults.font.family = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#6b7280';
+
+function pen(v){ return 'S/ ' + Math.round(v).toLocaleString('es-PE'); }
+function penK(v){ return 'S/' + Math.round(v/1000) + 'k'; }
+
+// ---------------- Year buttons ----------------
+const yearButtonsEl = document.getElementById('yearButtons');
+yearButtonsEl.innerHTML = YEARS.map(y => `<button class="yearbtn" data-year="${y}">${y}</button>`).join('');
+yearButtonsEl.addEventListener('click', e => {
+  const btn = e.target.closest('.yearbtn');
+  if(!btn) return;
+  state.year = btn.dataset.year;
+  render();
+});
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  state.search = e.target.value.trim().toLowerCase();
+  renderTable();
+});
+
+document.querySelectorAll('th[data-col]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if(state.sortCol === col){ state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc'; }
+    else { state.sortCol = col; state.sortDir = col === 'cliente' ? 'asc' : 'desc'; }
+    renderTable();
+  });
+});
+
+let comboChart, donutChart;
+
+function render(){
+  document.querySelectorAll('.yearbtn').forEach(b => b.classList.toggle('active', b.dataset.year === state.year));
+  renderKPIs();
+  renderCombo();
+  renderDonut();
+  renderTable();
+  renderPerf();
+}
+
+function renderKPIs(){
+  const y = DATA.years[state.year];
+  const periodLabelEl = document.getElementById('periodLabel');
+  periodLabelEl.textContent = state.year === 'Todos' ? '— 2022 a 2026 (histórico)' : '— año ' + state.year;
+
+  const ticket = y.facturas ? y.total / y.facturas : 0;
+  const top10 = y.clientes.slice(0,10).reduce((s,c) => s + c.pct, 0);
+
+  const cards = [
+    { lbl: state.year === 'Todos' ? 'Facturación histórica' : 'Facturación ' + state.year, val: pen(y.total),
+      delta: y.var_yoy === null ? null : (y.var_yoy >= 0 ? '↑ ' : '↓ ') + Math.abs(y.var_yoy).toFixed(1) + '% YoY' },
+    { lbl: 'Clientes activos', val: y.clientes_activos, delta: null },
+    { lbl: 'Facturas emitidas', val: y.facturas, delta: null },
+    { lbl: 'Ticket promedio', val: pen(ticket), delta: null },
+    { lbl: 'Top 10 clientes', val: top10.toFixed(1) + '%', delta: null },
+  ];
+  document.getElementById('kpiRow').innerHTML = cards.map(c => `
+    <div class="kpi-card">
+      <div class="lbl">${c.lbl}</div>
+      <div class="val">${c.val}</div>
+      <div class="delta ${c.delta ? (c.delta[0]==='↑'?'up':'down') : 'flat'}">${c.delta || '&nbsp;'}</div>
+    </div>`).join('');
+}
+
+function renderCombo(){
+  let months = DATA.monthly;
+  let sub = 'todo el período (2022-2026)';
+  if(state.year !== 'Todos'){
+    months = DATA.monthly.filter(m => m.mes.startsWith(state.year));
+    sub = 'año ' + state.year;
+  }
+  document.getElementById('comboSub').textContent = sub;
+  const labels = months.map(m => m.mes.slice(2));
+  const real = months.map(m => m.facturacion);
+  const presu = months.map(m => m.presupuesto);
+  const hasBudget = presu.some(v => v !== null);
+
+  const datasets = [
+    { type: 'bar', label: 'Facturación real', data: real, backgroundColor: '#93c5fd', borderRadius: 3, maxBarThickness: 18, order: 2 }
+  ];
+  if(hasBudget){
+    datasets.push({ type: 'line', label: 'Presupuesto', data: presu, borderColor: '#eb6834', backgroundColor: '#eb6834',
+      pointRadius: 0, borderWidth: 2.4, tension: 0.2, order: 1, spanGaps: false });
+  }
+
+  if(comboChart) comboChart.destroy();
+  comboChart = new Chart(document.getElementById('cCombo'), {
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', align: 'start', labels: { boxWidth: 10, usePointStyle: true, pointStyle: 'rect' } },
+        tooltip: {
+          backgroundColor: '#ffffff', titleColor: '#1f2937', bodyColor: '#1f2937',
+          borderColor: '#e5e7eb', borderWidth: 1, padding: 10, boxPadding: 4, cornerRadius: 6,
+          callbacks: { label: c => c.dataset.label + ': ' + (c.parsed.y===null ? 's/d' : pen(c.parsed.y)) }
+        }
+      },
+      scales: {
+        y: { grid: { color: '#eef0f2' }, ticks: { callback: v => penK(v) } },
+        x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: state.year === 'Todos' ? 10 : 12 } }
+      }
+    }
+  });
+}
+
+function renderDonut(){
+  const y = DATA.years[state.year];
+  const colorMap = { 'Recurrente': '#2a78d6', 'Consultoria': '#eb6834', 'Financiamiento': '#1baf7a', 'Otros': '#9ca3af' };
+  const labels = y.tipo_servicio.map(t => t.tipo);
+  const values = y.tipo_servicio.map(t => t.pct);
+  const colors = labels.map(l => colorMap[l] || '#9ca3af');
+
+  if(donutChart) donutChart.destroy();
+  donutChart = new Chart(document.getElementById('cDonut'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#ffffff', borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: c => c.label + ': ' + c.parsed.toFixed(1) + '%' } } }
+    }
+  });
+  document.getElementById('legendDonut').innerHTML = labels.map((l,i) =>
+    `<div class="row"><span class="sw" style="background:${colors[i]}"></span><span class="name">${l}</span><span class="pct">${values[i].toFixed(1)}%</span></div>`
+  ).join('');
+}
+
+function renderTable(){
+  const y = DATA.years[state.year];
+  let rows = y.clientes.slice();
+  if(state.search){
+    rows = rows.filter(c => c.cliente.toLowerCase().includes(state.search));
+  }
+  rows.sort((a,b) => {
+    let av = a[state.sortCol], bv = b[state.sortCol];
+    if(typeof av === 'string'){ av = av.toLowerCase(); bv = bv.toLowerCase(); }
+    if(av < bv) return state.sortDir === 'asc' ? -1 : 1;
+    if(av > bv) return state.sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  const shown = state.search ? rows : rows.slice(0, 10);
+  document.getElementById('tableSub').textContent = state.search
+    ? `${rows.length} resultado(s)` : `top 10 de ${y.clientes.length}`;
+
+  ['cliente','valor','pct'].forEach(c => {
+    document.getElementById('arrow-'+c).textContent = state.sortCol === c ? (state.sortDir === 'asc' ? '▲' : '▼') : '';
+  });
+
+  if(shown.length === 0){
+    document.getElementById('tblClientes').innerHTML = `<tr class="empty-row"><td colspan="3">Sin resultados para "${state.search}"</td></tr>`;
+    return;
+  }
+  const maxFact = Math.max(...shown.map(c => Math.abs(c.valor)), 1);
+  document.getElementById('tblClientes').innerHTML = shown.map(c => {
+    const pctBar = Math.max(0, (c.valor / maxFact * 100)).toFixed(0);
+    return `<tr>
+      <td>${c.cliente}</td>
+      <td class="num barcell"><span class="fill" style="width:${pctBar}%;"></span><span class="txt">${pen(c.valor)}</span></td>
+      <td class="num">${c.pct.toFixed(2)}%</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPerf(){
+  const y = DATA.years[state.year];
+  const recurrente = y.tipo_servicio.find(t => t.tipo === 'Recurrente') || { valor: 0, pct: 0 };
+  const consultoria = y.tipo_servicio.find(t => t.tipo === 'Consultoria') || { valor: 0, pct: 0 };
+  const top1 = y.clientes[0] || { cliente: '—', pct: 0 };
+  const cards = [
+    { lbl: 'Cliente principal', val: top1.cliente, delta: top1.pct.toFixed(1) + '% del período' },
+    { lbl: 'Facturación recurrente', val: pen(recurrente.valor), delta: recurrente.pct.toFixed(1) + '% del total' },
+    { lbl: 'Facturación consultoría', val: pen(consultoria.valor), delta: consultoria.pct.toFixed(1) + '% del total' },
+  ];
+  document.getElementById('perfStack').innerHTML = cards.map(c => `
+    <div class="perf-card">
+      <div class="lbl">${c.lbl}</div>
+      <div class="val" style="${c.lbl==='Cliente principal' ? 'font-size:15px;' : ''}">${c.val}</div>
+      <div class="delta up">${c.delta}</div>
+    </div>`).join('');
+}
+
+render();
+</script>
+</body>
+</html>
